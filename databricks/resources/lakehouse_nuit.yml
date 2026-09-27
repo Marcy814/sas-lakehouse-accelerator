@@ -1,0 +1,86 @@
+resources:
+  jobs:
+    lakehouse_nuit:
+      name: lakehouse-assurance-nuit-${bundle.target}
+      description: Ingestion Auto Loader → dbt (silver, SCD2, gold, marts migrés, tests) → modèle de fraude → maintenance Delta.
+      max_concurrent_runs: 1
+      timeout_seconds: 10800
+      schedule:
+        quartz_cron_expression: "0 30 2 * * ?"
+        timezone_id: America/Toronto
+      email_notifications:
+        on_failure:
+          - ${var.courriel_alertes}
+        on_duration_warning_threshold_exceeded:
+          - ${var.courriel_alertes}
+      health:
+        rules:
+          - metric: RUN_DURATION_SECONDS
+            op: GREATER_THAN
+            value: 5400
+      tags:
+        projet: assurance
+        centre_de_cout: actuariat
+
+      # Calcul serverless : aucun cluster à dimensionner, démarrage en quelques secondes,
+      # facturation à l'usage. Chaque environnement déclare ses dépendances Python.
+      environments:
+        - environment_key: base
+          spec:
+            client: "2"
+        - environment_key: dbt
+          spec:
+            client: "2"
+            dependencies:
+              - dbt-databricks>=1.9,<2
+        - environment_key: ml
+          spec:
+            client: "2"
+            dependencies:
+              - ../../dist/*.whl
+              - scikit-learn>=1.4
+              - skops>=0.10
+
+      tasks:
+        - task_key: ingestion_bronze
+          environment_key: base
+          spark_python_task:
+            python_file: ../src/ingestion_autoloader.py
+            parameters:
+              - --landing
+              - ${var.chemin_landing}
+              - --catalogue
+              - ${var.catalogue}
+
+        - task_key: transformation_dbt
+          depends_on:
+            - task_key: ingestion_bronze
+          environment_key: dbt
+          dbt_task:
+            project_directory: ../../lakehouse
+            commands:
+              - dbt build
+            warehouse_id: ${var.warehouse_id}
+            catalog: ${var.catalogue}
+            schema: default
+
+        - task_key: modele_fraude
+          depends_on:
+            - task_key: transformation_dbt
+          environment_key: ml
+          spark_python_task:
+            python_file: ../src/entrainement_fraude.py
+            parameters:
+              - --catalogue
+              - ${var.catalogue}
+              - --enregistrer
+
+        - task_key: maintenance_delta
+          depends_on:
+            - task_key: transformation_dbt
+          environment_key: base
+          spark_python_task:
+            python_file: ../src/maintenance_delta.py
+            parameters:
+              - --catalogue
+              - ${var.catalogue}

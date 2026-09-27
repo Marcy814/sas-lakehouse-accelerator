@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pipeline:
+    name: Pipeline, réconciliation et ML
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Installer les dépendances
+        run: pip install -e ".[dev,ml]"
+
+      - name: Lint
+        run: ruff check .
+
+      - name: Tests unitaires
+        run: pytest --ignore=tests/test_lakehouse_integration.py
+
+      - name: Pipeline de bout en bout (génération, inventaire, ingestion, dbt, legacy, réconciliation)
+        run: python pipeline.py run-all
+
+      - name: Modèle de fraude (MLflow)
+        run: python pipeline.py train-fraud
+
+      - name: Streaming en micro-lots
+        run: python pipeline.py stream
+
+      - name: Tests d'intégration
+        run: pytest tests/test_lakehouse_integration.py tests/test_fraud_model.py
+
+      - name: Publier les rapports dans le résumé
+        if: always()
+        run: |
+          for rapport in reconciliation estate_inventory ml_fraude; do
+            if [ -f "reports/$rapport.md" ]; then cat "reports/$rapport.md" >> "$GITHUB_STEP_SUMMARY"; fi
+          done
+
+      - name: Archiver les rapports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rapports-migration
+          path: reports/
+
+  portabilite:
+    name: Portabilité dbt (Databricks, Snowflake)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[portability]"
+      - name: Compilation hors ligne pour chaque plateforme
+        run: python pipeline.py portability
+      - if: always()
+        run: cat reports/portability.md >> "$GITHUB_STEP_SUMMARY"
+
+  spark:
+    name: Jobs PySpark Databricks (Spark local)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -e ".[dev,ml]" "pyspark==3.5.3" pyarrow
+      - run: pytest databricks/tests
+
+  terraform:
+    name: Infrastructure (Terraform + checkov)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        module: [azure, aws]
+    defaults:
+      run:
+        working-directory: infra/${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false
+      - run: terraform validate
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Analyse de sécurité checkov
+        run: |
+          pip install checkov
+          checkov -d . --framework terraform --compact --quiet

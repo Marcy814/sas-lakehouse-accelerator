@@ -1,0 +1,6 @@
+projet                               = "assurance"
+environnement                        = "dev"
+region                               = "canadacentral"
+groupe_ingenieurs_donnees_object_id  = "00000000-0000-0000-0000-000000000000"
+budget_mensuel_cad                   = 1500
+courriels_alertes_budget             = ["finops@exemple.com"]

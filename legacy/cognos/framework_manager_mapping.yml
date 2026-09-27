@@ -1,0 +1,6 @@
+package: Entrepot actuariel
+query_subjects:
+  Ratio sinistralite: dwh.ratio_sinistralite
+  Primes mensuelles: dwh.primes_mensuelles
+  Grands sinistres: dwh.grands_sinistres
+  Sinistres regles: dwh.sinistres_regles

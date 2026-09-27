@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<report xmlns="http://developer.cognos.com/schemas/report/14.0/" useStyleVersion="11.5" expressionLocale="fr-ca">
+    <modelPath>/content/folder[@name='Actuariat']/package[@name='Entrepot actuariel']/model[@name='model']</modelPath>
+    <drillBehavior/>
+    <queries>
+        <query name="Q_Ratio">
+            <source><model/></source>
+            <selection>
+                <dataItem name="Produit" aggregate="none" rollupAggregate="none">
+                    <expression>[Entrepot actuariel].[Ratio sinistralite].[Produit]</expression>
+                </dataItem>
+                <dataItem name="Annee" aggregate="none" rollupAggregate="none">
+                    <expression>[Entrepot actuariel].[Ratio sinistralite].[Annee]</expression>
+                </dataItem>
+                <dataItem name="Primes acquises" aggregate="total">
+                    <expression>[Entrepot actuariel].[Ratio sinistralite].[Primes acquises]</expression>
+                </dataItem>
+                <dataItem name="Total paye" aggregate="total">
+                    <expression>[Entrepot actuariel].[Ratio sinistralite].[Total paye]</expression>
+                </dataItem>
+                <dataItem name="Ratio" aggregate="calculated" rollupAggregate="calculated">
+                    <expression>[Total paye] / [Primes acquises]</expression>
+                </dataItem>
+            </selection>
+            <detailFilters>
+                <detailFilter>
+                    <filterExpression>[Annee] between ?p_annee_debut? and ?p_annee_fin?</filterExpression>
+                </detailFilter>
+            </detailFilters>
+        </query>
+        <query name="Q_Primes">
+            <source><model/></source>
+            <selection>
+                <dataItem name="Mois" aggregate="none">
+                    <expression>[Entrepot actuariel].[Primes mensuelles].[Mois emission]</expression>
+                </dataItem>
+                <dataItem name="Segment" aggregate="none">
+                    <expression>[Entrepot actuariel].[Primes mensuelles].[Segment]</expression>
+                </dataItem>
+                <dataItem name="Primes emises" aggregate="total">
+                    <expression>[Entrepot actuariel].[Primes mensuelles].[Primes emises]</expression>
+                </dataItem>
+                <dataItem name="Prime moyenne" aggregate="average">
+                    <expression>[Entrepot actuariel].[Primes mensuelles].[Prime moyenne]</expression>
+                </dataItem>
+            </selection>
+            <detailFilters>
+                <detailFilter>
+                    <filterExpression>substring([Mois];1;4) = cast(?p_annee_fin?; varchar(4))</filterExpression>
+                </detailFilter>
+            </detailFilters>
+        </query>
+        <query name="Q_Grands_Sinistres">
+            <source><model/></source>
+            <selection>
+                <dataItem name="Sinistre" aggregate="none">
+                    <expression>[Entrepot actuariel].[Grands sinistres].[Sinistre ID]</expression>
+                </dataItem>
+                <dataItem name="Produit" aggregate="none">
+                    <expression>[Entrepot actuariel].[Grands sinistres].[Produit]</expression>
+                </dataItem>
+                <dataItem name="Montant net" aggregate="total">
+                    <expression>[Entrepot actuariel].[Grands sinistres].[Montant net]</expression>
+                </dataItem>
+                <dataItem name="Rang" aggregate="none">
+                    <expression>rank([Montant net] for [Produit])</expression>
+                </dataItem>
+            </selection>
+            <detailFilters>
+                <detailFilter>
+                    <filterExpression>[Rang] &lt;= 10</filterExpression>
+                </detailFilter>
+            </detailFilters>
+        </query>
+    </queries>
+    <layouts>
+        <layout>
+            <reportPages>
+                <page name="Performance">
+                    <pageBody>
+                        <contents>
+                            <crosstab name="Ratio par produit et annee" refQuery="Q_Ratio"/>
+                            <combinationChart name="Primes par mois" refQuery="Q_Primes"/>
+                            <list name="Top 10 grands sinistres" refQuery="Q_Grands_Sinistres"/>
+                        </contents>
+                    </pageBody>
+                </page>
+            </reportPages>
+        </layout>
+    </layouts>
+</report>

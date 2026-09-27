@@ -1,0 +1,87 @@
+version: 2
+
+models:
+  - name: silver_clients
+    description: Version la plus récente de chaque client (dédoublonnée, typée, standardisée).
+    columns:
+      - name: client_id
+        data_tests: [unique, not_null]
+      - name: province
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["QC", "ON", "NB", "NS", "AB", "BC"]
+      - name: segment
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["PARTICULIER", "PME"]
+      - name: date_maj
+        data_tests: [not_null]
+
+  - name: silver_polices
+    description: Version la plus récente de chaque police.
+    columns:
+      - name: police_id
+        data_tests: [unique, not_null]
+      - name: client_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_clients')
+                field: client_id
+      - name: produit
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["AUTO", "HABITATION", "VIE"]
+      - name: prime_annuelle
+        data_tests:
+          - valeur_entre:
+              arguments:
+                min_value: 0
+                max_value: 100000
+
+  - name: silver_sinistres
+    description: Version la plus récente de chaque sinistre, orphelins conservés pour traçabilité.
+    columns:
+      - name: sinistre_id
+        data_tests: [unique, not_null]
+      - name: police_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('silver_polices')
+                field: police_id
+              config:
+                severity: warn
+      - name: statut
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["OUVERT", "FERME", "REFUSE"]
+      - name: montant_reclame
+        data_tests:
+          - not_null
+          - valeur_entre:
+              arguments:
+                min_value: 0
+                max_value: 10000000
+
+  - name: silver_enquetes
+    description: Dernière conclusion d'enquête par sinistre.
+    columns:
+      - name: sinistre_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('silver_sinistres')
+                field: sinistre_id
+      - name: conclusion
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["FRAUDE_CONFIRMEE", "NON_FONDEE"]

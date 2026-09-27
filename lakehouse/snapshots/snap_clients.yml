@@ -1,0 +1,9 @@
+snapshots:
+  - name: snap_clients
+    description: Historique SCD type 2 des clients, basé sur la date de mise à jour du système source.
+    relation: ref('silver_clients')
+    config:
+      unique_key: client_id
+      strategy: timestamp
+      updated_at: date_maj_ts
+      dbt_valid_to_current: "cast('9999-12-31' as timestamp)"

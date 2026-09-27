@@ -1,0 +1,16 @@
+version: 2
+
+models:
+  - name: ml_features_fraude
+    description: >
+      Caractéristiques par sinistre pour le modèle de détection de fraude. etiquette_fraude n'est
+      connue que pour les sinistres enquêtés (biais de sélection à garder en tête).
+    columns:
+      - name: sinistre_id
+        data_tests: [unique, not_null]
+      - name: etiquette_fraude
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 1]
+                quote: false

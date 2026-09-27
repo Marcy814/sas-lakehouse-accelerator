@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "sas-lakehouse-accelerator"
+version = "0.1.0"
+description = "Accélérateur de migration SAS 9 vers un lakehouse médaillon (dbt + DuckDB), assisté par agents IA."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "duckdb>=1.1,<2",
+    "dbt-core>=1.10.5,<2",
+    "dbt-duckdb>=1.9.4,<2",
+    "pandas>=2.1",
+    "pyyaml>=6",
+    "sqlglot>=25",
+    "anthropic>=0.40",
+    "openai>=1.40",
+    "python-dotenv>=1.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.5"]
+ml = ["scikit-learn>=1.4", "mlflow-skinny>=2.14", "skops>=0.10"]
+portability = ["dbt-databricks>=1.9", "dbt-snowflake>=1.9"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 140
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["B905"]

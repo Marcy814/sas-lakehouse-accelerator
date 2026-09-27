@@ -1,0 +1,12 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: Extraits bruts du système PolicyAdmin, chargés tels quels (toutes colonnes en texte).
+    schema: bronze
+    tables:
+      - name: clients
+      - name: polices
+      - name: sinistres
+      - name: enquetes
+        description: Conclusions de l'unité des enquêtes spéciales (étiquettes de fraude).

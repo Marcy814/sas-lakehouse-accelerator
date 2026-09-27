@@ -1,0 +1,107 @@
+version: 2
+
+models:
+  - name: mart_clients_courants
+    description: Équivalent migré de dwh.clients_courants (01_clients_courants.sas).
+    config:
+      tags: ["migration"]
+    columns:
+      - name: client_id
+        data_tests: [unique, not_null]
+      - name: tranche_age
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["18-29", "30-49", "50-64", "65+"]
+
+  - name: mart_sinistres_enrichis
+    description: Équivalent migré de dwh.sinistres_enrichis (02_sinistres_enrichis.sas).
+    config:
+      tags: ["migration"]
+    columns:
+      - name: sinistre_id
+        data_tests: [unique, not_null]
+      - name: tranche_montant
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: ["PETIT", "MOYEN", "GRAND"]
+      - name: taux_paiement
+        data_tests:
+          - valeur_entre:
+              arguments:
+                min_value: 0
+                max_value: 1
+
+  - name: mart_ratio_sinistralite
+    description: Équivalent migré de dwh.ratio_sinistralite (03_ratio_sinistralite.sas).
+    config:
+      tags: ["migration"]
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "concat(produit, '-', annee)"
+    columns:
+      - name: primes_acquises
+        data_tests: [not_null]
+      - name: ratio_sinistralite
+        data_tests:
+          - not_null
+          - valeur_entre:
+              arguments:
+                min_value: 0
+                max_value: 5
+
+  - name: mart_indicateurs_fraude
+    description: Équivalent migré de dwh.indicateurs_fraude (04_indicateurs_fraude.sas).
+    config:
+      tags: ["migration"]
+    columns:
+      - name: sinistre_id
+        data_tests: [unique, not_null]
+      - name: score_risque
+        data_tests:
+          - accepted_values:
+              arguments:
+                values: [0, 25, 35, 40, 60, 65, 75, 100]
+                quote: false
+
+  - name: mart_sinistres_regles
+    description: Équivalent migré de DWH.SINISTRES_REGLES (Informatica m_sinistres_regles, groupe par défaut du Router).
+    config:
+      tags: ["migration"]
+    columns:
+      - name: sinistre_id
+        data_tests: [unique, not_null]
+      - name: montant_net
+        data_tests:
+          - valeur_entre:
+              arguments:
+                min_value: 0
+                max_value: 24999.99
+
+  - name: mart_grands_sinistres
+    description: Équivalent migré de DWH.GRANDS_SINISTRES (Informatica m_sinistres_regles, groupe GRANDS du Router).
+    config:
+      tags: ["migration"]
+    columns:
+      - name: sinistre_id
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('mart_sinistres_enrichis')
+                field: sinistre_id
+
+  - name: mart_primes_mensuelles
+    description: Équivalent migré de DWH.PRIMES_MENSUELLES (DataStage j_primes_mensuelles).
+    config:
+      tags: ["migration"]
+    data_tests:
+      - unique:
+          arguments:
+            column_name: "concat(mois_emission, '-', produit, '-', segment)"
+    columns:
+      - name: primes_emises
+        data_tests: [not_null]

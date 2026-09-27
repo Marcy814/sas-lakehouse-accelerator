@@ -1,0 +1,8 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/.venv",
+  "python.testing.pytestEnabled": true,
+  "python.testing.pytestArgs": ["tests"],
+  "files.associations": { "*.sql": "jinja-sql" },
+  "dbt.dbtPythonPathOverride": "${workspaceFolder}/.venv",
+  "terminal.integrated.env.windows": { "PYTHONUTF8": "1" }
+}

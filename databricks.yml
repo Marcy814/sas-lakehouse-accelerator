@@ -1,0 +1,81 @@
+# Databricks Asset Bundle : déploie les jobs du lakehouse depuis ce dépôt.
+#   databricks bundle validate -t free
+#   databricks bundle deploy -t free
+#   databricks bundle run lakehouse_nuit -t free
+#
+# Cibles :
+#   free  Databricks Free Edition (gratuit, serverless, catalogue « workspace », volumes Unity Catalog)
+#   dev   Azure Databricks de développement (infra/azure)
+#   prod  Azure Databricks de production, exécuté par un principal de service
+bundle:
+  name: lakehouse_assurance
+
+include:
+  - databricks/resources/*.yml
+
+sync:
+  exclude:
+    - data/**
+    - warehouse/**
+    - reports/**
+    - legacy/outputs/**
+    - mlruns/**
+    - .venv/**
+
+variables:
+  catalogue:
+    description: Catalogue Unity Catalog de l'environnement.
+    default: workspace
+  warehouse_id:
+    description: SQL Warehouse utilisé par dbt.
+    lookup:
+      warehouse: Serverless Starter Warehouse
+  chemin_landing:
+    description: Zone d'atterrissage des extraits CSV.
+    default: /Volumes/workspace/bronze/landing/extraits
+  chemin_evenements:
+    description: Dossier où le bus d'événements dépose les fichiers JSON.
+    default: /Volumes/workspace/bronze/landing/evenements
+  courriel_alertes:
+    description: Destinataire des alertes d'échec et de durée.
+    default: equipe-donnees@exemple.com
+
+artifacts:
+  accelerateur:
+    type: whl
+    path: .
+    build: python -m pip wheel --no-deps -w dist .
+
+targets:
+  free:
+    mode: development
+    default: true
+    workspace:
+      host: https://dbc-2194f603-35b9.cloud.databricks.com
+
+  dev:
+    mode: development
+    workspace:
+      host: https://adb-0000000000000000.0.azuredatabricks.net
+    variables:
+      catalogue: assurance_dev
+      chemin_landing: abfss://landing@stassurancedevlac.dfs.core.windows.net/extraits
+      chemin_evenements: abfss://landing@stassurancedevlac.dfs.core.windows.net/evenements
+      warehouse_id:
+        lookup:
+          warehouse: wh-assurance-dev
+
+  prod:
+    mode: production
+    workspace:
+      host: https://adb-1111111111111111.1.azuredatabricks.net
+      root_path: /Workspace/Shared/.bundle/${bundle.name}/${bundle.target}
+    variables:
+      catalogue: assurance_prod
+      chemin_landing: abfss://landing@stassuranceprodlac.dfs.core.windows.net/extraits
+      chemin_evenements: abfss://landing@stassuranceprodlac.dfs.core.windows.net/evenements
+      warehouse_id:
+        lookup:
+          warehouse: wh-assurance-prod
+    run_as:
+      service_principal_name: 00000000-0000-0000-0000-000000000000

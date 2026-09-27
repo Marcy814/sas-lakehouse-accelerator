@@ -1,0 +1,63 @@
+version: 2
+
+models:
+  - name: dim_client
+    description: Dimension client SCD type 2 (une ligne par version, clé substitut client_sk).
+    data_tests:
+      - scd2_sans_chevauchement:
+          arguments:
+            cle: client_id
+            debut: valide_de
+            fin: valide_jusqua
+            courant: est_courant
+    columns:
+      - name: client_sk
+        data_tests: [unique, not_null]
+      - name: client_id
+        data_tests: [not_null]
+
+  - name: dim_police
+    description: Dimension police (SCD type 1).
+    columns:
+      - name: police_sk
+        data_tests: [unique, not_null]
+      - name: police_id
+        data_tests: [unique, not_null]
+
+  - name: dim_date
+    description: Dimension calendrier 2018-2027, également épine temporelle de la couche sémantique.
+    time_spine:
+      standard_granularity_column: date_jour
+    columns:
+      - name: date_id
+        data_tests: [unique, not_null]
+      - name: date_jour
+        granularity: day
+
+  - name: fct_sinistre
+    description: >
+      Table de faits des sinistres. Grain : un sinistre (version courante). Le client est rattaché
+      à la version en vigueur à la date du sinistre (jointure point-in-time).
+    columns:
+      - name: sinistre_id
+        data_tests: [unique, not_null]
+      - name: police_sk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_police')
+                field: police_sk
+      - name: client_sk
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_client')
+                field: client_sk
+      - name: date_sinistre_id
+        data_tests:
+          - relationships:
+              arguments:
+                to: ref('dim_date')
+                field: date_id

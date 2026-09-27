@@ -1,0 +1,66 @@
+defaults:
+  numeric_tolerance: 0.01
+
+datasets:
+  - legacy: dwh.clients_courants
+    program: 01_clients_courants
+    legacy_file: clients_courants.csv
+    target_model: mart_clients_courants
+    target_schema: gold
+    keys: [client_id]
+
+  - legacy: dwh.polices_courantes
+    program: 02_sinistres_enrichis
+    legacy_file: polices_courantes.csv
+    target_model: silver_polices
+    target_schema: silver
+    keys: [police_id]
+    columns: [police_id, client_id, produit, date_debut, date_fin, prime_annuelle, statut, date_maj]
+
+  - legacy: dwh.sinistres_enrichis
+    program: 02_sinistres_enrichis
+    legacy_file: sinistres_enrichis.csv
+    target_model: mart_sinistres_enrichis
+    target_schema: gold
+    keys: [sinistre_id]
+    tolerances:
+      taux_paiement: 0.000001
+
+  - legacy: dwh.ratio_sinistralite
+    program: 03_ratio_sinistralite
+    legacy_file: ratio_sinistralite.csv
+    target_model: mart_ratio_sinistralite
+    target_schema: gold
+    keys: [produit, annee]
+    tolerances:
+      ratio_sinistralite: 0.000001
+
+  - legacy: dwh.indicateurs_fraude
+    program: 04_indicateurs_fraude
+    legacy_file: indicateurs_fraude.csv
+    target_model: mart_indicateurs_fraude
+    target_schema: gold
+    keys: [sinistre_id]
+
+  - legacy: dwh.sinistres_regles
+    program: m_sinistres_regles
+    legacy_file: sinistres_regles.csv
+    target_model: mart_sinistres_regles
+    target_schema: gold
+    keys: [sinistre_id]
+    tolerances:
+      ratio_prime: 0.000001
+
+  - legacy: dwh.grands_sinistres
+    program: m_sinistres_regles
+    legacy_file: grands_sinistres.csv
+    target_model: mart_grands_sinistres
+    target_schema: gold
+    keys: [sinistre_id]
+
+  - legacy: dwh.primes_mensuelles
+    program: j_primes_mensuelles
+    legacy_file: primes_mensuelles.csv
+    target_model: mart_primes_mensuelles
+    target_schema: gold
+    keys: [mois_emission, produit, segment]

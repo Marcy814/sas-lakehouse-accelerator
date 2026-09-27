@@ -1,0 +1,5 @@
+projet                   = "assurance"
+environnement            = "dev"
+region                   = "ca-central-1"
+budget_mensuel_usd       = 1000
+courriels_alertes_budget = ["finops@exemple.com"]

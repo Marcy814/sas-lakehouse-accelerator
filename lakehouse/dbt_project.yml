@@ -1,0 +1,38 @@
+name: lakehouse_assurance
+version: "1.0.0"
+profile: lakehouse_assurance
+
+model-paths: ["models"]
+snapshot-paths: ["snapshots"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+clean-targets: ["target", "dbt_packages"]
+
+vars:
+  date_ref: "2026-06-30"
+  annees_ratio: [2023, 2024, 2025]
+  seuil_grand_sinistre: 25000
+
+models:
+  lakehouse_assurance:
+    silver:
+      +schema: silver
+      +materialized: incremental
+      +incremental_strategy: "{{ 'merge' if target.type in ('databricks', 'snowflake') else 'delete+insert' }}"
+      +on_schema_change: append_new_columns
+    gold:
+      +schema: gold
+      +materialized: table
+    ml:
+      +schema: gold
+      +materialized: table
+    intermediate:
+      +schema: silver
+      +materialized: view
+    marts:
+      +schema: gold
+      +materialized: table
+
+snapshots:
+  lakehouse_assurance:
+    +schema: snapshots

@@ -1,0 +1,31 @@
+resources:
+  jobs:
+    sinistres_temps_reel:
+      name: sinistres-temps-reel-${bundle.target}
+      description: >
+        Micro-lots toutes les 10 minutes (trigger availableNow) : un compromis coût/latence. Passer à un
+        trigger continu si le métier exige une latence inférieure à la minute.
+      max_concurrent_runs: 1
+      schedule:
+        quartz_cron_expression: "0 0/10 * * * ?"
+        timezone_id: America/Toronto
+      email_notifications:
+        on_failure:
+          - ${var.courriel_alertes}
+      tags:
+        projet: assurance
+        centre_de_cout: actuariat
+      environments:
+        - environment_key: base
+          spec:
+            client: "2"
+      tasks:
+        - task_key: agregats_et_alertes
+          environment_key: base
+          spark_python_task:
+            python_file: ../src/streaming_sinistres.py
+            parameters:
+              - --evenements
+              - ${var.chemin_evenements}
+              - --catalogue
+              - ${var.catalogue}

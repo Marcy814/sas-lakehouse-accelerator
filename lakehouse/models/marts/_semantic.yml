@@ -1,0 +1,96 @@
+version: 2
+
+semantic_models:
+  - name: ratio_sinistralite
+    description: Remplace la requête Q_Ratio du rapport Cognos rapport_performance_actuarielle.
+    model: ref('mart_ratio_sinistralite')
+    defaults:
+      agg_time_dimension: debut_annee
+    entities:
+      - name: produit_annee
+        type: primary
+        expr: "concat(produit, '-', annee)"
+    dimensions:
+      - name: produit
+        type: categorical
+      - name: debut_annee
+        type: time
+        type_params:
+          time_granularity: year
+    measures:
+      - name: total_paye
+        agg: sum
+      - name: primes_acquises
+        agg: sum
+      - name: nb_sinistres
+        agg: sum
+
+  - name: primes_mensuelles
+    description: Remplace la requête Q_Primes du rapport Cognos.
+    model: ref('mart_primes_mensuelles')
+    defaults:
+      agg_time_dimension: mois
+    entities:
+      - name: mois_produit_segment
+        type: primary
+        expr: "concat(mois_emission, '-', produit, '-', segment)"
+    dimensions:
+      - name: mois
+        type: time
+        expr: debut_mois
+        type_params:
+          time_granularity: month
+      - name: segment
+        type: categorical
+      - name: produit
+        type: categorical
+    measures:
+      - name: primes_emises
+        agg: sum
+      - name: nb_polices
+        agg: sum
+
+metrics:
+  - name: total_paye
+    label: Total payé
+    type: simple
+    type_params:
+      measure: total_paye
+
+  - name: primes_acquises
+    label: Primes acquises
+    type: simple
+    type_params:
+      measure: primes_acquises
+
+  - name: nb_polices
+    label: Nombre de polices
+    type: simple
+    type_params:
+      measure: nb_polices
+
+  - name: ratio_sinistralite
+    label: Ratio de sinistralité
+    description: >
+      Ratio des sommes (total payé / primes acquises), comme l'élément calculé Cognos à agrégat
+      « calculated ». Une moyenne des ratios annuels donnerait un résultat différent.
+    type: ratio
+    type_params:
+      numerator: total_paye
+      denominator: primes_acquises
+
+  - name: primes_emises
+    label: Primes émises
+    type: simple
+    type_params:
+      measure: primes_emises
+
+  - name: prime_moyenne_ponderee
+    label: Prime moyenne (pondérée)
+    description: >
+      Remplace « Prime moyenne » (agrégat average de Cognos, moyenne de moyennes) par la moyenne
+      pondérée : primes émises / nombre de polices.
+    type: ratio
+    type_params:
+      numerator: primes_emises
+      denominator: nb_polices
