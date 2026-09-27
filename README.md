@@ -180,28 +180,8 @@ glossaire métier. Ses garde-fous analysent chaque requête avec sqlglot :
 ses jetons, estime son coût et s'arrête au-delà de `MAX_COST_USD`. Les erreurs de clé, de crédit et de
 quota produisent un message clair plutôt qu'un plantage.
 
-## Infrastructure et exploitation
 
-| Domaine | Azure (`infra/azure`) | AWS (`infra/aws`) |
-|---|---|---|
-| Stockage | ADLS Gen2 (HNS), conteneurs landing/bronze/silver/gold, cycle de vie | S3 par couche, versionnement, cycle de vie |
-| Chiffrement | Chiffrement d'infrastructure, TLS 1.2, clés locales désactivées | KMS avec rotation, TLS obligatoire |
-| Réseau | VNet, Databricks en VNet injection sans IP publique, private endpoints + DNS privé, NSG | Blocage de l'accès public, notifications EventBridge |
-| Identités | Identités managées (ADF, connecteur Unity Catalog), RBAC par conteneur | Rôle de pipeline au moindre privilège par couche |
-| Secrets | Key Vault (RBAC, purge protection, sans accès public) | KMS |
-| Observabilité | Log Analytics, journaux de lecture/écriture/suppression | Journaux d'accès S3 |
-| Coûts | Budget avec alertes à 80 % (réel) et 100 % (prévu) | AWS Budgets filtré par étiquette |
 
-La **région** est Canada Central, ou ca-central-1 sur AWS, pour la résidence des données au Canada. Le
-scan **checkov** donne 126 contrôles réussis et 0 échec ; chaque exception est justifiée dans le code.
-
-Le **Databricks Asset Bundle** (`databricks.yml`) déploie deux jobs en **serverless**, sur trois cibles :
-`free` (Databricks Free Edition, gratuite), `dev` et `prod` (Azure Databricks).
-
-- **Job de nuit** : Auto Loader → dbt → modèle de fraude (enregistré dans Unity Catalog) → OPTIMIZE/VACUUM.
-- **Job temps réel** : toutes les 10 minutes, en `availableNow`.
-- **Environnements serverless** : chacun déclare ses dépendances (dbt-databricks, la roue du projet, scikit-learn).
-- **Surveillance** : alertes d'échec et de durée, étiquettes de centre de coût, principal de service en production.
 
 ### Essayer sur Databricks Free Edition
 
