@@ -45,34 +45,7 @@ Les trois vrais risques d'une telle migration sont rarement techniques :
    ratio « calculé » Cognos.
 3. **Ne pas pouvoir le prouver** au métier et à l'audit.
 
-## Architecture
 
-```mermaid
-flowchart LR
-    subgraph Legacy["Parc actuel"]
-        SAS[SAS 9<br/>4 programmes]
-        INFA[Informatica<br/>PowerCenter]
-        DS[IBM DataStage]
-        COG[IBM Cognos]
-    end
-
-    subgraph Lakehouse["Lakehouse (dbt : DuckDB / Databricks / Snowflake)"]
-        LAND[/Zone d'atterrissage/] -->|Auto Loader / ingestion idempotente| BRZ[(Bronze)]
-        EVT[/Événements temps réel/] -->|micro-lots, filigrane| STR[(Fenêtres + alertes)]
-        BRZ -->|incrémental| SLV[(Silver)]
-        SLV -->|snapshot SCD2| GLD[(Gold : étoile + marts migrés)]
-        GLD --> ML[Modèle de fraude<br/>MLflow]
-        GLD --> SEM[Couche sémantique<br/>ex-Cognos]
-    end
-
-    Legacy -. inventaire, lignage, vagues .-> ANALYSE[Analyse statique]
-    SAS -.-> AGENT[Agent de migration IA]
-    AGENT --> SANDBOX[(agent_sandbox)]
-    Legacy --> RECON{Réconciliation<br/>ligne à ligne}
-    GLD --> RECON
-    SANDBOX --> RECON
-    GLD --> ANALYSTE[Agent analytique<br/>text-to-SQL]
-```
 
 ## Démarrage rapide
 
