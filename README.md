@@ -45,34 +45,7 @@ Les trois vrais risques d'une telle migration sont rarement techniques :
    ratio « calculé » Cognos.
 3. **Ne pas pouvoir le prouver** au métier et à l'audit.
 
-## Architecture
 
-```mermaid
-flowchart LR
-    subgraph Legacy["Parc actuel"]
-        SAS[SAS 9<br/>4 programmes]
-        INFA[Informatica<br/>PowerCenter]
-        DS[IBM DataStage]
-        COG[IBM Cognos]
-    end
-
-    subgraph Lakehouse["Lakehouse (dbt : DuckDB / Databricks / Snowflake)"]
-        LAND[/Zone d'atterrissage/] -->|Auto Loader / ingestion idempotente| BRZ[(Bronze)]
-        EVT[/Événements temps réel/] -->|micro-lots, filigrane| STR[(Fenêtres + alertes)]
-        BRZ -->|incrémental| SLV[(Silver)]
-        SLV -->|snapshot SCD2| GLD[(Gold : étoile + marts migrés)]
-        GLD --> ML[Modèle de fraude<br/>MLflow]
-        GLD --> SEM[Couche sémantique<br/>ex-Cognos]
-    end
-
-    Legacy -. inventaire, lignage, vagues .-> ANALYSE[Analyse statique]
-    SAS -.-> AGENT[Agent de migration IA]
-    AGENT --> SANDBOX[(agent_sandbox)]
-    Legacy --> RECON{Réconciliation<br/>ligne à ligne}
-    GLD --> RECON
-    SANDBOX --> RECON
-    GLD --> ANALYSTE[Agent analytique<br/>text-to-SQL]
-```
 
 ## Démarrage rapide
 
@@ -208,28 +181,8 @@ glossaire métier. Ses garde-fous analysent chaque requête avec sqlglot :
 ses jetons, estime son coût et s'arrête au-delà de `MAX_COST_USD`. Les erreurs de clé, de crédit et de
 quota produisent un message clair plutôt qu'un plantage.
 
-## Infrastructure et exploitation
 
-| Domaine | Azure (`infra/azure`) | AWS (`infra/aws`) |
-|---|---|---|
-| Stockage | ADLS Gen2 (HNS), conteneurs landing/bronze/silver/gold, cycle de vie | S3 par couche, versionnement, cycle de vie |
-| Chiffrement | Chiffrement d'infrastructure, TLS 1.2, clés locales désactivées | KMS avec rotation, TLS obligatoire |
-| Réseau | VNet, Databricks en VNet injection sans IP publique, private endpoints + DNS privé, NSG | Blocage de l'accès public, notifications EventBridge |
-| Identités | Identités managées (ADF, connecteur Unity Catalog), RBAC par conteneur | Rôle de pipeline au moindre privilège par couche |
-| Secrets | Key Vault (RBAC, purge protection, sans accès public) | KMS |
-| Observabilité | Log Analytics, journaux de lecture/écriture/suppression | Journaux d'accès S3 |
-| Coûts | Budget avec alertes à 80 % (réel) et 100 % (prévu) | AWS Budgets filtré par étiquette |
 
-La **région** est Canada Central, ou ca-central-1 sur AWS, pour la résidence des données au Canada. Le
-scan **checkov** donne 126 contrôles réussis et 0 échec ; chaque exception est justifiée dans le code.
-
-Le **Databricks Asset Bundle** (`databricks.yml`) déploie deux jobs en **serverless**, sur trois cibles :
-`free` (Databricks Free Edition, gratuite), `dev` et `prod` (Azure Databricks).
-
-- **Job de nuit** : Auto Loader → dbt → modèle de fraude (enregistré dans Unity Catalog) → OPTIMIZE/VACUUM.
-- **Job temps réel** : toutes les 10 minutes, en `availableNow`.
-- **Environnements serverless** : chacun déclare ses dépendances (dbt-databricks, la roue du projet, scikit-learn).
-- **Surveillance** : alertes d'échec et de durée, étiquettes de centre de coût, principal de service en production.
 
 ### Essayer sur Databricks Free Edition
 
