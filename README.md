@@ -76,7 +76,7 @@ flowchart LR
 
 ## Démarrage rapide
 
-Prérequis : Python 3.11+ et Git.
+
 
 ```bash
 python -m venv .venv
@@ -88,6 +88,7 @@ python pipeline.py demo-pitfall   # ce que la réconciliation attrape sur une co
 python pipeline.py train-fraud    # modèle de fraude + MLflow
 python pipeline.py stream         # 6 micro-lots d'événements
 python -m pytest
+python pipeline.py ask "..."
 ```
 
 Options supplémentaires :
@@ -244,6 +245,7 @@ databricks schemas create ml workspace
 databricks volumes create workspace bronze landing MANAGED
 python pipeline.py generate
 foreach ($t in "clients", "polices", "sinistres", "enquetes") {
+    databricks fs mkdir "dbfs:/Volumes/workspace/bronze/landing/extraits/$t"
     databricks fs cp "data/landing/$t/batch_001.csv" "dbfs:/Volumes/workspace/bronze/landing/extraits/$t/batch_001.csv" --overwrite
 }
 ```
